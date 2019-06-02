@@ -3,11 +3,11 @@ set -x # verbose output
 set -e # fail the whole script if some command fails
 mkdir -p results
 resultdir=$(readlink -f results)
-repo=https://github.com/CentOS-PaaS-SIG/linchpin
+repo=https://github.com/abraverm/linchpin
 
 pip install --user rpmvenv
 
-git clone --single-branch --branch master --depth 1 $repo
+git clone --single-branch --branch rpm --depth 1 $repo
 cd linchpin
 python2 setup.py sdist -d "$resultdir"
 
@@ -15,9 +15,11 @@ version="$(cat linchpin/version.py | awk -F "'" '{print $2}' | head -n1)"
 rpmvenv linchpin.json --core_version="${version}" --verbose --spec > "${resultdir}/linchpin.spec"
 sed -i '/^# Blocks/i BuildRequires: python2-pip' "${resultdir}/linchpin.spec"
 sed -i '/^# Blocks/i BuildRequires: python2-devel' "${resultdir}/linchpin.spec"
-sed -i "s#^cd %{SOURCE0}#cd %{_builddir}/linchpin-${version}/#g" "${resultdir}/linchpin.spec"
-sed -i "s#^Source0: .*#Source0: https://github.com//linchpin/archive/v${version}.tar.gz#g" "${resultdir}/linchpin.spec"
-sed -i '/^%prep/a %setup -q' "${resultdir}/linchpin.spec"
+sed -i "s#^cd %{SOURCE0}#cd %{_builddir}/linchpin-rpm/#g" "${resultdir}/linchpin.spec"
+#sed -i "s#^cd %{SOURCE0}#cd %{_builddir}/linchpin-${version}/#g" "${resultdir}/linchpin.spec"
+#sed -i "s#^Source0: .*#Source0: https://github.com/CentOS-PaaS-SIG/linchpin/archive/v${version}.tar.gz#g" "${resultdir}/linchpin.spec"
+sed -i "s#^Source0: .*#Source0: https://github.com/abraverm/linchpin/archive/rpm.zip#g" "${resultdir}/linchpin.spec"
+sed -i '/^%prep/a %setup -n linchpin-rpm' "${resultdir}/linchpin.spec"
 sed -i '/^%prep/a pip2 install --user rpmvenv virtualenv==16.1.0' "${resultdir}/linchpin.spec"
 sed -i '/^%install/a export PATH=$PATH:~/.local/bin' "${resultdir}/linchpin.spec"
 sed -i '/^%post/i find %{buildroot} -name "*.pyc" -exec rm -rf {} \\\;' "${resultdir}/linchpin.spec"
