@@ -1,0 +1,22 @@
+---
+# From all the resources need to be provisioned stored in 'resources' var
+# Pick resources of specific role, such as os_server
+- name: "Select {{ role }} resources"
+  set_fact:
+    selected_resources: "{{ resources | selectattr('role', role }}"
+
+# batch is used for supporting both async and serial deployments
+# if async enabled then create a batch of number of resources to
+# deployed in async, otherwise run async for batch of size one
+# This is a trick to minimize code duplication
+- set_fact:
+    fork: 5
+  when: _async
+
+- name: "Provision {{ role }} resources"
+  incldue: "provision_{{ role }}.yml"
+  vars:
+    res_defs: res
+  loop: "{{ selected_resources | batch( fork | default(1) | list }}"
+  loop_control:
+    loop_var: res

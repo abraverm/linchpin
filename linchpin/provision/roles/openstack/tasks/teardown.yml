@@ -1,0 +1,29 @@
+---
+- set_fact:
+    retries: "{{ attempts | default(0) | int + 1 }}"
+
+- fail:
+    msg: "Number of attempts exceeded {{ max_retries }}, remove remaining resources manually"
+  when: (retries | int) > (max_retries | int)
+
+- name: "Teardown Openstack resource"
+  local_action:
+    module: "os_{{ res.role }}"
+    auth: "{{ auth_var | omit_filter(omit) }}"
+    state: absent
+    name: "{{ res.id }}"
+    verify: no
+    wait: yes
+  ignore_errors: true
+  register: results
+  loop: "{{ deployments }}"
+  loop_control:
+    loop_var: res
+    label: "{{ res[res.role].name }}"
+
+- include_tasks: teardown.yml
+  when: results.failed is defined and results.failed
+
+# Unset retries
+- set_fact:
+    retries:

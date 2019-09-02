@@ -1,0 +1,22 @@
+- name: Get creds from auth driver
+  # TODO: Move and share between roles
+  block:
+  - set_fact:
+      auth_var: "" # Unset the authvar from previous run
+      cred_profile: "{{ res_grp['credentials']['profile'] | default('default')}}"
+      cred_filename: "{{ res_grp['credentials']['filename'] | default('clouds.yaml') }}"
+
+  - auth_driver:
+      filename: "{{ cred_filename }}"
+      cred_type: openstack
+      cred_path: "{{ creds_path | default(default_credentials_path) }}"
+      driver: file
+      vault_enc: "{{ vault_encryption }}"
+      vault_pass: "{{ vault_pass }}"
+    register: auth_var_out
+
+  - set_fact:
+      auth_var: "{{ auth_var_out['output']['clouds'][cred_profile]['auth'] | default('') }}"
+  no_log: "{{ not debug_mode }}"
+  when: res_grp['credentials'] is defined
+  ignore_errors: true

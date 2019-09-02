@@ -1,0 +1,73 @@
+---
+- set_fact:
+    os_defaults:
+      auth: "{{ auth_var | omit_filter(omit) }}"
+      wait: yes
+      verify: no
+      api_timeout: 99999
+      timeout: 3600
+
+- name: Provision resource
+  local_action:
+    module: "{{ res.role }}"
+    args: "{{ res | get_args | combine(os_defaults) }}"
+  register: async_results
+  loop: "{{ res_defs }}"
+  no_log: "{{ not debug_mode }}"
+  loop_control:
+    loop_var: res
+  async: "{{ async_timeout | default(1000) }}"
+  poll: 0
+
+- name: Wait for resources to provision
+  async_status:
+    jid: "{{ async_result_item.ansible_job_id }}"
+  loop: "{{ async_results.results }}"
+  loop_control:
+    loop_var: async_result_item
+  register: async_poll_results
+  until: async_poll_results.finished
+  retries: 30
+
+- name: Provision sub_resources
+  include: provision_sub_resource.yml
+  loop: "{{ async_poll_results.results }}"
+  loop_control:
+    loop_var: parents
+
+- name: Post provision
+  block:
+  - name: Openstack Server
+    block:
+    - name: "Process {{ role }} resources provision results"
+      set_fact:
+        topology_outputs: "{{ topology_outputs + (async_results.results | process_output('os_server')) }}"
+    when: role == 'os_server'
+
+  - name: Openstack Keypair
+    block:
+    - name: "Generate keyfile"
+      copy: 
+        content: "{{ res.key.private_key }}"
+        dest: "{{ default_ssh_key_path }}/{{ res.key.name }}.key"
+      no_log: "{{ not debug_mode }}"
+      loop: "{{ async_results.results }}"
+      loop_control:
+        loop_var: res
+    when: role == 'os_keypair'
+
+
+  # Generic post provision when nothing special needs to be done
+  - name: "Process {{ role }} resources provision results"
+    set_fact:
+      generic_topology_roles:
+        - os_heat
+        - os_keypair
+        - os_network
+        - os_router
+        - os_subnet
+        - os_volume
+        - os_security_group
+        - os_object
+      topology_outputs: "{{ topology_outputs + [ async_results ] }}"
+    when: role in generic_topology_roles

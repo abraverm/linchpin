@@ -1,0 +1,26 @@
+- name: Get topology output data
+  # TODO: Move and share between roles
+  block:
+  - name: From resources file
+    block:
+    - output_parser:
+        output_file: "{{ default_resources_path + '/' + topo_data['topology_name'].replace(' ', '_').lower() + '.output' }}"
+      register: topo_output
+
+    - set_fact:
+        deployments: "{{ topo_output.output['content'] | update_role}}"
+    when: generate_resources
+
+  - name: From RunDB
+    block:
+    - rundb:
+        conn_str: "{{ rundb_conn }}"
+        operation: get
+        table: "{{ target }}"
+        key: outputs
+        run_id: "{{ orig_run_id }}"
+      register: topo_output_rundb
+
+    - set_fact:
+        deployments: "{{ topo_output_rundb.output[0]['resources'] | update_role}}"
+    when: not generate_resources

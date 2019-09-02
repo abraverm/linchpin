@@ -1,21 +1,43 @@
 ---
-# This playbook will initiate provisioning for the openstack resources groups.
-#- name: "DEBUG:: Openstack resource group list"
-#  debug:
-#    msg: "Currently Provisioning/Deprovisioning the resources under list os_res_grps {{ os_res_grps }}"
+- include: creds.yml
+- name: Provision Openstack resources
+  block:
+  - name: Translate PinFile declaration to ansible resources list
+    set_fact:
+      resources: "{{ resources.resource_definitions | expand_count | expand_sg | expand_server }}"
 
-- name: "declaring output vars"
-  set_fact:
-    topology_outputs_os_server: []
-    topology_outputs_os_object: []
-    topology_outputs_os_volume: []
-    topology_outputs_os_heat: []
-    topology_outputs_os_keypair: []
-    topology_outputs_os_sg: []
-    topology_outputs_os_network: []
+  # Provision by role needed for resource dependency handling
+  # For example os_volume has to be deployed before os_server
+  # Its a crude method to handle dependencies but sufficient in the scope
+  # of resource deployment
+  - name: Provision resources by role
+    include: "provision_role.yml"
+    loop: "{{ roles }}"
+      - os_security_group
+      - os_security_group_rule
+      - os_volume
+      - os_object
+      - os_keypair
+      - os_heat
+      - os_network
+      - os_subnet
+      - os_router
+      - os_server
+    loop_control:
+      loop_var: role
+  when: state == "present"
 
-- name: "Initiating Provision/Teardown of openstack resource group"
-  include: provision_resource_group.yml res_grp={{ item }}
-  with_items:
-    - "{{ resources }}"
-  register: resource_grps_output
+- name: "Teardown Openstack resources"
+  block:
+  - include: topology_data.yml
+  # To handle resource dependencies, teardown will be called
+  # multiple times to destroy all possible resources that
+  # don't have dependencies (tree leafs). It will be done
+  # in recursion until all resources removed or it reaches the
+  # limit 10 levels (shouldn't be possible).
+  - include: teardown.yml
+    vars:
+      done: false
+      max_retries: 10
+
+  when: state == "absent"

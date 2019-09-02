@@ -1,0 +1,26 @@
+- name: Prepare security group rules
+  set_fact:
+    sub_resources: |
+      {% set sub_list = [] -%}
+      {% for res in parent.async_result_item.res.sub_resources -%}
+        {% set _tmp = res.update('security_group': parent.async_result_item.id %}
+        {% set _tmp = sub_list.append(res) %}
+      {%- endfor %}
+    sub_role: 'os_security_group_rule'
+  when: parent.async_result_item.res.role == 'os_security_group'
+
+# batch is used for supporting both async and serial deployments
+# if async enabled then create a batch of number of resources to
+# deployed in async, otherwise run async for batch of size one
+# This is a trick to minimize code duplication
+- set_fact:
+    fork: 5
+  when: _async
+
+- name: Provision sub resources
+  incldue: "provision_{{ sub_rule }}.yml"
+  vars:
+    res_defs: res
+  loop: "{{ sub_resources | batch( fork | default(1) | list }}"
+  loop_control:
+    loop_var: res
