@@ -22,6 +22,8 @@ class CFGInventoryFormatter(InventoryFormatter):
     def __init__(self):
         InventoryFormatter.__init__(self)
         self.config = ConfigParser(allow_no_value=True)
+        # for keeping values case
+        self.config.optionxform = str
 
     def add_sections(self, section_list):
         for section in section_list:
