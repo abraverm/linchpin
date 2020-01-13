@@ -34,7 +34,7 @@
     vault_pass: "{{ vault_pass }}"
   register: auth_var_out
   ignore_errors: true
-  no_log: "{{ not debug_mode }}"
+  no_log: true
   when: res_grp['credentials'] is defined
 
 - name: "set auth_var"
@@ -42,7 +42,7 @@
     auth_var: "{{ auth_var_out['output']['clouds'][cred_profile]['auth'] }}"
   ignore_errors: true
   when: auth_var_out['output'] is defined
-  no_log: "{{ not debug_mode }}"
+  no_log: true
 
 # Deployment information
 - name: "Get topology output data from resources file"
