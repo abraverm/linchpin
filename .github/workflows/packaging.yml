@@ -40,6 +40,10 @@ jobs:
       - run: |
           rpmbuild -ba "${HOME}/rpmbuild/SPECS/linchpin.spec"
           mv ~/rpmbuild/RPMS/x86_64/*.x86_64.rpm linchpin.fc31.x86_64.rpm
+      - uses: actions/upload-artifact@v1
+        with:
+          name: linchpin.fc31.x86_64.rpm
+          path: linchpin.fc31.x86_64.rpm
       - name: Upload Release Asset
         if: github.event_name == 'release'
         id: upload-release-asset
