@@ -1,8 +1,6 @@
-name: "create release packages"
+name: "Build packages"
 
-on:
-  release:
-    types: [published]
+on: [push, pull_request, release]
 
 jobs:
   rpm:
@@ -11,11 +9,11 @@ jobs:
     container: fedora:31
     steps:
       - uses: actions/checkout@v2
+      - run: dnf install -y python3-pip rpmdevtools rpm-build git gcc krb5-devel python3-devel
+      - run: pip install --user rpmvenv
+      - run: rpmdev-setuptree
+      - run: python3 setup.py sdist -d "${HOME}/rpmbuild/SOURCES"
       - run: |
-          dnf install -y python3-pip rpm\* git gcc krb5-devel python3-devel
-          pip install rpmvenv
-          rpmdev-setuptree
-          python3 setup.py sdist -d "${HOME}/rpmbuild/SOURCES"
           version="$(cat linchpin/version.py | awk -F "'" '{print $2}' | head -n1)"
           mv "${HOME}/rpmbuild/SOURCES/linchpin-${version}.tar.gz" "${HOME}/rpmbuild/SOURCES/v${version}.tar.gz"
           "${HOME}/.local/bin/rpmvenv" rpm/linchpin.json --core_version="${version}" --verbose --spec | tee "${HOME}/rpmbuild/SPECS/linchpin.spec"
@@ -39,9 +37,11 @@ jobs:
                  -e '/^%post/i unlink %{buildroot}/opt/linchpin/lib64 || true' \
                  -e '/^%post/i ln -s /opt/linchpin/lib %{buildroot}/opt/linchpin/lib64 || true' \
            "${HOME}/rpmbuild/SPECS/linchpin.spec"
+      - run: |
           rpmbuild -ba "${HOME}/rpmbuild/SPECS/linchpin.spec"
           mv ~/rpmbuild/RPMS/x86_64/*.x86_64.rpm linchpin.fc31.x86_64.rpm
       - name: Upload Release Asset
+        if: github.event_name == 'release'
         id: upload-release-asset
         uses: actions/upload-release-asset@v1.0.2
         env:
