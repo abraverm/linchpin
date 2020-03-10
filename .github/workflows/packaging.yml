@@ -51,7 +51,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ github.upload_url }}
+          upload_url: ${{ github.event.release.upload_url }}
           asset_path: linchpin.fc31.x86_64.rpm
           asset_name: linchpin.fc31.x86_64.rpm
           asset_content_type: application/rpm
