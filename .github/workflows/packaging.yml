@@ -1,6 +1,6 @@
 name: "Build packages"
 
-on: [push, pull_request, release]
+on: [pull_request, release]
 
 jobs:
   rpm:
