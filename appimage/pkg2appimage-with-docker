@@ -81,7 +81,7 @@ log "Building $RECIPE in a container..."
 
 randstr=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 8 | head -n 1)
 containerid=appimage-build-$randstr
-imageid=appimage-build-$(id -u)
+imageid=appimage-build
 
 log "Building Docker container"
 (set -xe; docker build -t $imageid .)
