@@ -31,4 +31,4 @@ script:
   - StartupWMClass=linchpin
   - MimeType=text/x-python3;text/x-python3;
   - EOF
-  - usr/bin/linchpin --version 2>&1 | awk '{print $3}' >> ../VERSION
+  - echo LVER >> ../VERSION

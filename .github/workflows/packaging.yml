@@ -122,6 +122,7 @@ jobs:
         run: |
           cd appimage
           sed -i "s#LINCHPIN#git+https://github.com/${{ github['repository'] }}.git@${{ github['ref'] }}#g" appimage.yml
+          sed -i "s#LVER#${{ steps.version.outputs.version }}#g" appimage.yml
           ./pkg2appimage-with-docker appimage.yml 2>&1
       - uses: actions/upload-artifact@v1
         with:
